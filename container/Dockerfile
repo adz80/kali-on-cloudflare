@@ -1,6 +1,9 @@
 FROM kalilinux/kali-rolling:latest
 
-RUN apt-get update && apt-get install -y \
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
     ttyd \
     zsh \
     curl \
@@ -9,6 +12,7 @@ RUN apt-get update && apt-get install -y \
     iputils-ping \
     dnsutils \
     nmap \
+    ca-certificates \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
