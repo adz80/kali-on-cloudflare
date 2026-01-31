@@ -1,0 +1,19 @@
+{
+  "name": "kali-sessions",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "build:container": "docker build -t kali-terminal ./container",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240129.0",
+    "typescript": "^5.3.3",
+    "wrangler": "^3.25.0"
+  },
+  "dependencies": {
+    "@cloudflare/kv-asset-handler": "^0.4.2"
+  }
+}

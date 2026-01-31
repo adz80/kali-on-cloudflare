@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kali Sessions</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css">
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>Kali Sessions</h1>
+      <div id="user-info"></div>
+    </header>
+    
+    <main>
+      <section id="session-controls">
+        <button id="btn-create" class="btn btn-primary">Create Session</button>
+        <button id="btn-start" class="btn btn-success" disabled>Start</button>
+        <button id="btn-stop" class="btn btn-warning" disabled>Stop</button>
+        <button id="btn-destroy" class="btn btn-danger" disabled>Destroy</button>
+        <button id="btn-refresh" class="btn">Refresh</button>
+      </section>
+
+      <section id="session-info">
+        <div id="session-status">No active session</div>
+      </section>
+
+      <section id="terminal-container" class="hidden">
+        <div id="terminal"></div>
+      </section>
+
+      <section id="sessions-list">
+        <h2>Your Sessions</h2>
+        <table id="sessions-table">
+          <thead>
+            <tr>
+              <th>Session ID</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th>Last Seen</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xterm-addon-web-links@0.9.0/lib/xterm-addon-web-links.min.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>
