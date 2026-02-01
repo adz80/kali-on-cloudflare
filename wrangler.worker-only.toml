@@ -40,7 +40,18 @@ IDLE_TIMEOUT_MS = "1800000"
 MAX_SESSIONS_PER_USER = "1"
 NOVNC_PORT = "6901"
 
+
 [observability]
-[observability.logs]
 enabled = false
+head_sampling_rate = 1
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+persist = true
 invocation_logs = true
+
+[observability.traces]
+enabled = false
+persist = true
+head_sampling_rate = 1
