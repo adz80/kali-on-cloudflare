@@ -13,7 +13,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     xvfb xauth dbus-x11 xfce4 xfce4-terminal \
     wget sudo curl gpg git bzip2 vim procps python3 x11-xserver-utils \
-    libnss3 libnspr4 libasound2 libgbm1 ca-certificates fonts-liberation xdg-utils \
+    libnss3 libnspr4 libasound2t64 libgbm1 ca-certificates fonts-liberation xdg-utils \
     tigervnc-standalone-server tigervnc-common \
     zsh net-tools iputils-ping dnsutils nmap \
     firefox-esr && \
