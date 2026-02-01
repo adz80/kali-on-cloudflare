@@ -3,17 +3,17 @@ import { log } from "./logger";
 import { getOwnerIdentifier, isAdmin } from "./identity";
 
 export class KaliSession implements DurableObject {
-  private state: DurableObjectState;
+  private ctx: DurableObjectState;
   private env: Env;
   private sessionData: SessionState | null = null;
   private activeWebSockets: Set<WebSocket> = new Set();
   private idleCheckInterval: number | null = null;
 
-  constructor(state: DurableObjectState, env: Env) {
-    this.state = state;
+  constructor(ctx: DurableObjectState, env: Env) {
+    this.ctx = ctx;
     this.env = env;
-    this.state.blockConcurrencyWhile(async () => {
-      this.sessionData = await this.state.storage.get<SessionState>("session") || null;
+    this.ctx.blockConcurrencyWhile(async () => {
+      this.sessionData = await this.ctx.storage.get<SessionState>("session") || null;
     });
   }
 
@@ -84,7 +84,7 @@ export class KaliSession implements DurableObject {
     }
 
     const owner = getOwnerIdentifier(identity);
-    const sessionId = this.state.id.toString();
+    const sessionId = this.ctx.id.toString();
 
     this.sessionData = {
       sessionId,
@@ -94,7 +94,7 @@ export class KaliSession implements DurableObject {
       lastSeen: Date.now(),
     };
 
-    await this.state.storage.put("session", this.sessionData);
+    await this.ctx.storage.put("session", this.sessionData);
     log("session_created", sessionId, owner);
 
     return Response.json({ sessionId, status: this.sessionData.status });
@@ -115,11 +115,11 @@ export class KaliSession implements DurableObject {
 
       // Start container with internet enabled
       // The container binding is configured in wrangler.toml
-      if (!this.state.container) {
+      if (!this.ctx.container) {
         throw new Error("Container binding not available");
       }
 
-      await this.state.container.start({
+      await this.ctx.container.start({
         enableInternet: true,
       });
 
@@ -167,7 +167,7 @@ export class KaliSession implements DurableObject {
     const owner = this.sessionData.owner;
 
     await this.stopContainer();
-    await this.state.storage.deleteAll();
+    await this.ctx.storage.deleteAll();
     this.sessionData = null;
 
     log("session_destroyed", sessionId, owner);
@@ -194,7 +194,7 @@ export class KaliSession implements DurableObject {
       return new Response("Session not found", { status: 404 });
     }
 
-    if (this.sessionData.status !== "running" || !this.state.container) {
+    if (this.sessionData.status !== "running" || !this.ctx.container) {
       return new Response("Session not running", { status: 400 });
     }
 
@@ -207,7 +207,7 @@ export class KaliSession implements DurableObject {
 
     try {
       // Get the container's TCP port as a Fetcher
-      const containerFetcher = this.state.container.getTcpPort(terminalPort);
+      const containerFetcher = this.ctx.container.getTcpPort(terminalPort);
 
       // Forward the WebSocket upgrade request to the container's ttyd server
       // ttyd serves WebSocket connections for terminal access
@@ -257,9 +257,9 @@ export class KaliSession implements DurableObject {
     }
     this.activeWebSockets.clear();
 
-    if (this.state.container) {
+    if (this.ctx.container) {
       try {
-        await this.state.container.destroy();
+        await this.ctx.container.destroy();
       } catch {
         // Container may already be destroyed
       }
@@ -274,7 +274,7 @@ export class KaliSession implements DurableObject {
 
   private async saveSession(): Promise<void> {
     if (this.sessionData) {
-      await this.state.storage.put("session", this.sessionData);
+      await this.ctx.storage.put("session", this.sessionData);
     }
   }
 
