@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - main
-    paths-ignore:
-      - 'container/**'
   workflow_dispatch:
     inputs:
       build_container:
@@ -15,9 +13,23 @@ on:
         type: boolean
 
 jobs:
-  deploy-worker:
+  check-changes:
     runs-on: ubuntu-latest
-    if: ${{ !inputs.build_container }}
+    outputs:
+      container_changed: ${{ steps.filter.outputs.container }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            container:
+              - 'container/**'
+
+  deploy-worker:
+    needs: check-changes
+    runs-on: ubuntu-latest
+    if: ${{ needs.check-changes.outputs.container_changed != 'true' && !inputs.build_container }}
     steps:
       - uses: actions/checkout@v4
 
@@ -39,8 +51,9 @@ jobs:
           command: deploy --config wrangler.worker-only.toml
 
   deploy-with-container:
+    needs: check-changes
     runs-on: ubuntu-latest
-    if: ${{ inputs.build_container }}
+    if: ${{ needs.check-changes.outputs.container_changed == 'true' || inputs.build_container }}
     steps:
       - uses: actions/checkout@v4
 
