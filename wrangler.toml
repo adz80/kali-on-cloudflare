@@ -16,7 +16,7 @@ class_name = "KaliSession"
 
 [[migrations]]
 tag = "v1"
-new_classes = ["KaliSession"]
+new_sqlite_classes = ["KaliSession"]
 
 [vars]
 ADMIN_GROUP = "kali-admins"
