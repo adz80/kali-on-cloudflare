@@ -12,8 +12,12 @@ bucket = "./public"
 [[containers]]
 class_name = "KaliSession"
 image = "./container/Dockerfile"
-max_instances = 10
+max_instances = 1
 instance_type = "standard-2"
+
+[containers.constraints]
+regions = ["oc"]
+
 
 [[durable_objects.bindings]]
 name = "KALI_SESSION"
