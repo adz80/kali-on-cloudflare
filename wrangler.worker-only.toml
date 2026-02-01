@@ -1,0 +1,46 @@
+name = "kali-sessions"
+main = "src/worker.ts"
+compatibility_date = "2024-01-29"
+
+routes = [
+  { pattern = "kali.chewbacca.dev", custom_domain = true }
+]
+
+[site]
+bucket = "./public"
+
+[[containers]]
+class_name = "KaliSession"
+image = "registry.cloudflare.com/cb3485d35912cf35f42f5f3505062d9b/kali-sessions-kalisession"
+max_instances = 10
+
+[[durable_objects.bindings]]
+name = "KALI_SESSION"
+class_name = "KaliSession"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["KaliSession"]
+
+[[migrations]]
+tag = "v2"
+renamed_classes = [{ from = "KaliSession", to = "Webtop" }]
+
+[[migrations]]
+tag = "v3"
+renamed_classes = [{ from = "Webtop", to = "KaliSession" }]
+
+[[kv_namespaces]]
+binding = "SESSION_INDEX"
+id = "86361887b1004deb92b58981ad0ca78e"
+
+[vars]
+ADMIN_GROUP = "kali-admins"
+IDLE_TIMEOUT_MS = "1800000"
+MAX_SESSIONS_PER_USER = "1"
+NOVNC_PORT = "6901"
+
+[observability]
+[observability.logs]
+enabled = false
+invocation_logs = true

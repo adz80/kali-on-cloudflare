@@ -36,7 +36,7 @@ jobs:
           apiToken: ${{ secrets.CF_API_TOKEN }}
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
           wranglerVersion: "4.61.1"
-          command: deploy --no-build-image
+          command: deploy --config wrangler.worker-only.toml
 
   deploy-with-container:
     runs-on: ubuntu-latest
