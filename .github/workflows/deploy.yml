@@ -4,11 +4,43 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - 'container/**'
   workflow_dispatch:
+    inputs:
+      build_container:
+        description: 'Build and deploy container'
+        required: false
+        default: 'false'
+        type: boolean
 
 jobs:
-  build-and-deploy:
+  deploy-worker:
     runs-on: ubuntu-latest
+    if: ${{ !inputs.build_container }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Deploy Worker Only
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CF_API_TOKEN }}
+          accountId: ${{ secrets.CF_ACCOUNT_ID }}
+          wranglerVersion: "4.61.1"
+          command: deploy --no-build-image
+
+  deploy-with-container:
+    runs-on: ubuntu-latest
+    if: ${{ inputs.build_container }}
     steps:
       - uses: actions/checkout@v4
 
