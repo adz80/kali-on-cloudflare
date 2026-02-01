@@ -2,10 +2,8 @@
 
 set -e
 
-# Create VNC directory and set password (empty for no auth)
+# Create VNC directory
 mkdir -p ~/.vnc
-echo "" | vncpasswd -f > ~/.vnc/passwd
-chmod 600 ~/.vnc/passwd
 
 # Create xstartup script
 cat > ~/.vnc/xstartup << 'EOF'

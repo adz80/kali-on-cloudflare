@@ -12,7 +12,7 @@ bucket = "./public"
 [[containers]]
 class_name = "KaliSession"
 image = "registry.cloudflare.com/cb3485d35912cf35f42f5f3505062d9b/kali-sessions-kalisession:02cd8254"
-max_instances = 0
+max_instances = 10
 instance_type = "standard-2"
 
 [[durable_objects.bindings]]
