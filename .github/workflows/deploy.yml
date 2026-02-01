@@ -21,8 +21,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install latest wrangler
+        run: npm install -g wrangler@latest
+
       - name: Build and push container with wrangler
-        run: npx wrangler containers build ./container --push --tag kali-terminal:${{ github.sha }}
+        run: wrangler containers build ./container --push --tag kali-terminal:${{ github.sha }}
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
@@ -32,3 +35,4 @@ jobs:
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
+          wranglerVersion: "4"
