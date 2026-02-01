@@ -131,3 +131,7 @@ See the [Kali Metapackages documentation](https://www.kali.org/docs/general-use/
 - All access gated by Cloudflare Access
 - VNC has no password (security handled at Access layer)
 - Containers have outbound internet access
+
+## TODO
+
+- [ ] Add R2-backed FUSE mounts for persistent user data storage (`/home/kali/data`)
