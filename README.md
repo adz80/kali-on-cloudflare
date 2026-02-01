@@ -2,6 +2,8 @@
 
 Browser-accessible Kali Linux desktop sessions on Cloudflare using Containers.
 
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/adz80/kali-on-cloudflare)
+
 ## Architecture
 
 - **Worker**: Routes requests to per-user containers based on Cloudflare Access identity
