@@ -105,7 +105,10 @@ async function handleCreateSession(
   const response = await stub.fetch(
     new Request("https://internal/create", {
       method: "POST",
-      headers: { "X-Identity": JSON.stringify(identity) },
+      headers: { 
+        "X-Identity": JSON.stringify(identity),
+        "X-Session-Id": sessionId,
+      },
     })
   );
 

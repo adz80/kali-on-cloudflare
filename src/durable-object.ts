@@ -38,7 +38,7 @@ export class KaliSession implements DurableObject {
     }
 
     if (path === "/create" && request.method === "POST") {
-      return this.handleCreate(identity);
+      return this.handleCreate(identity, request);
     }
 
     if (path === "/start" && request.method === "POST") {
@@ -78,13 +78,13 @@ export class KaliSession implements DurableObject {
     return false;
   }
 
-  private async handleCreate(identity: Identity): Promise<Response> {
+  private async handleCreate(identity: Identity, request: Request): Promise<Response> {
     if (this.sessionData) {
       return Response.json({ error: "Session already exists" }, { status: 409 });
     }
 
     const owner = getOwnerIdentifier(identity);
-    const sessionId = this.ctx.id.toString();
+    const sessionId = request.headers.get("X-Session-Id") || this.ctx.id.toString();
 
     this.sessionData = {
       sessionId,
