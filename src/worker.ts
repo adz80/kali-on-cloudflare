@@ -65,11 +65,12 @@ export default {
       return routeToDurableObject(env, sessionId, `/${action}`, "POST", identity);
     }
 
-    // WebSocket endpoint
-    const wsMatch = path.match(/^\/session\/([^/]+)\/ws$/);
-    if (wsMatch) {
-      const sessionId = wsMatch[1];
-      return routeToDurableObject(env, sessionId, "/ws", "GET", identity, request);
+    // noVNC proxy - serve static files and WebSocket
+    const vncMatch = path.match(/^\/session\/([^/]+)\/vnc(.*)$/);
+    if (vncMatch) {
+      const sessionId = vncMatch[1];
+      const vncPath = vncMatch[2] || "/";
+      return routeToDurableObject(env, sessionId, `/vnc${vncPath}`, request.method, identity, request);
     }
 
     return new Response("Not Found", { status: 404 });

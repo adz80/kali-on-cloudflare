@@ -4,7 +4,7 @@ export interface Env {
   ADMIN_GROUP: string;
   IDLE_TIMEOUT_MS: string;
   MAX_SESSIONS_PER_USER: string;
-  TERMINAL_PORT: string;
+  NOVNC_PORT: string;
   __STATIC_CONTENT?: KVNamespace;
   __STATIC_CONTENT_MANIFEST?: string;
 }

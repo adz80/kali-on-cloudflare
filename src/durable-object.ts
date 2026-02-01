@@ -57,8 +57,9 @@ export class KaliSession implements DurableObject {
       return this.handleStatus();
     }
 
-    if (path === "/ws") {
-      return this.handleWebSocket(request, identity);
+    // Proxy noVNC requests to container
+    if (path.startsWith("/vnc")) {
+      return this.handleVncProxy(request, path);
     }
 
     return new Response("Not Found", { status: 404 });
@@ -189,7 +190,7 @@ export class KaliSession implements DurableObject {
     });
   }
 
-  private async handleWebSocket(request: Request, identity: Identity): Promise<Response> {
+  private async handleVncProxy(request: Request, path: string): Promise<Response> {
     if (!this.sessionData) {
       return new Response("Session not found", { status: 404 });
     }
@@ -198,45 +199,36 @@ export class KaliSession implements DurableObject {
       return new Response("Session not running", { status: 400 });
     }
 
-    const upgradeHeader = request.headers.get("Upgrade");
-    if (!upgradeHeader || upgradeHeader.toLowerCase() !== "websocket") {
-      return new Response("Expected WebSocket", { status: 426 });
-    }
-
-    const terminalPort = parseInt(this.env.TERMINAL_PORT, 10);
+    const novncPort = parseInt(this.env.NOVNC_PORT, 10);
 
     try {
-      // Get the container's TCP port as a Fetcher
-      const containerFetcher = this.ctx.container.getTcpPort(terminalPort);
-
-      // Forward the WebSocket upgrade request to the container's ttyd server
-      // ttyd serves WebSocket connections for terminal access
-      const containerUrl = new URL(request.url);
-      containerUrl.pathname = "/ws";
+      const containerFetcher = this.ctx.container.getTcpPort(novncPort);
+      
+      // Strip /vnc prefix and forward to noVNC server
+      const containerPath = path.replace(/^\/vnc/, "") || "/";
+      const containerUrl = `http://container${containerPath}`;
 
       const containerResponse = await containerFetcher.fetch(
-        new Request(containerUrl.toString(), {
+        new Request(containerUrl, {
           method: request.method,
           headers: request.headers,
+          body: request.body,
         })
       );
 
-      // If the container returns a WebSocket upgrade response, return it
-      if (containerResponse.webSocket) {
-        this.updateLastSeen();
-        log("websocket_connected", this.sessionData.sessionId, this.sessionData.owner);
+      this.updateLastSeen();
 
-        // Track the WebSocket for cleanup
+      // Handle WebSocket upgrade for VNC
+      if (containerResponse.webSocket) {
+        log("websocket_connected", this.sessionData.sessionId, this.sessionData.owner);
         containerResponse.webSocket.addEventListener("close", () => {
           log("websocket_disconnected", this.sessionData!.sessionId, this.sessionData!.owner);
         });
-
-        return containerResponse;
       }
 
-      return new Response("Failed to establish WebSocket connection", { status: 500 });
+      return containerResponse;
     } catch (err) {
-      const message = err instanceof Error ? err.message : "WebSocket error";
+      const message = err instanceof Error ? err.message : "VNC proxy error";
       log("error", this.sessionData.sessionId, this.sessionData.owner, message);
       return new Response(message, { status: 500 });
     }

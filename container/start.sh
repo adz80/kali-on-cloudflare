@@ -1,9 +1,8 @@
 #!/bin/bash
-set -e
 
-exec ttyd \
-    --port 7681 \
-    --interface 127.0.0.1 \
-    --writable \
-    --ping-interval 30 \
-    /bin/zsh
+# Create log directory
+sudo mkdir -p /var/log/supervisor
+sudo chown -R kali:kali /var/log/supervisor
+
+# Start supervisor which manages VNC and noVNC
+exec sudo /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf

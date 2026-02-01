@@ -2,9 +2,6 @@
   'use strict';
 
   let currentSessionId = null;
-  let terminal = null;
-  let fitAddon = null;
-  let websocket = null;
 
   const elements = {
     btnCreate: document.getElementById('btn-create'),
@@ -12,9 +9,11 @@
     btnStop: document.getElementById('btn-stop'),
     btnDestroy: document.getElementById('btn-destroy'),
     btnRefresh: document.getElementById('btn-refresh'),
+    btnFullscreen: document.getElementById('btn-fullscreen'),
     sessionStatus: document.getElementById('session-status'),
-    terminalContainer: document.getElementById('terminal-container'),
-    terminalEl: document.getElementById('terminal'),
+    desktopContainer: document.getElementById('desktop-container'),
+    vncFrame: document.getElementById('vnc-frame'),
+    connectionStatus: document.getElementById('connection-status'),
     sessionsTableBody: document.querySelector('#sessions-table tbody'),
     userInfo: document.getElementById('user-info'),
   };
@@ -76,7 +75,7 @@
         if (status.status === 'running') {
           updateStatus(`Session running: ${currentSessionId}`);
           updateButtons('running');
-          connectWebSocket();
+          connectDesktop();
           await refreshSessions();
           return;
         } else if (status.status === 'error') {
@@ -93,11 +92,11 @@
     if (!currentSessionId) return;
     try {
       setLoading(true);
-      disconnectWebSocket();
+      disconnectDesktop();
       await apiRequest('POST', `/api/sessions/${currentSessionId}/stop`);
       updateStatus(`Session stopped: ${currentSessionId}`);
       updateButtons('stopped');
-      hideTerminal();
+      hideDesktop();
       await refreshSessions();
     } catch (err) {
       showError(err.message);
@@ -111,12 +110,12 @@
     if (!confirm('Are you sure you want to destroy this session?')) return;
     try {
       setLoading(true);
-      disconnectWebSocket();
+      disconnectDesktop();
       await apiRequest('DELETE', `/api/sessions/${currentSessionId}`);
       updateStatus('Session destroyed');
       currentSessionId = null;
       updateButtons(null);
-      hideTerminal();
+      hideDesktop();
       await refreshSessions();
     } catch (err) {
       showError(err.message);
@@ -166,101 +165,47 @@
       updateButtons(status.status);
       
       if (status.status === 'running') {
-        connectWebSocket();
+        connectDesktop();
       } else {
-        hideTerminal();
+        hideDesktop();
       }
     } catch (err) {
       showError(err.message);
     }
   };
 
-  function connectWebSocket() {
-    if (websocket) {
-      disconnectWebSocket();
+  function connectDesktop() {
+    const vncUrl = `/session/${currentSessionId}/vnc/vnc.html?autoconnect=true&resize=scale`;
+    elements.vncFrame.src = vncUrl;
+    elements.connectionStatus.textContent = 'Connecting...';
+    
+    elements.vncFrame.onload = () => {
+      elements.connectionStatus.textContent = 'Connected';
+    };
+    
+    showDesktop();
+  }
+
+  function disconnectDesktop() {
+    elements.vncFrame.src = '';
+    elements.connectionStatus.textContent = 'Disconnected';
+  }
+
+  function showDesktop() {
+    elements.desktopContainer.classList.remove('hidden');
+  }
+
+  function hideDesktop() {
+    elements.desktopContainer.classList.add('hidden');
+  }
+
+  function toggleFullscreen() {
+    const container = elements.desktopContainer;
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      container.requestFullscreen();
     }
-
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/session/${currentSessionId}/ws`;
-
-    websocket = new WebSocket(wsUrl);
-
-    websocket.onopen = () => {
-      showTerminal();
-      terminal.writeln('Connected to Kali session...\r\n');
-    };
-
-    websocket.onmessage = (event) => {
-      if (event.data instanceof Blob) {
-        event.data.text().then(text => terminal.write(text));
-      } else {
-        terminal.write(event.data);
-      }
-    };
-
-    websocket.onclose = () => {
-      terminal.writeln('\r\n\r\nConnection closed.');
-    };
-
-    websocket.onerror = (err) => {
-      console.error('WebSocket error:', err);
-      terminal.writeln('\r\n\r\nConnection error.');
-    };
-  }
-
-  function disconnectWebSocket() {
-    if (websocket) {
-      websocket.close();
-      websocket = null;
-    }
-  }
-
-  function initTerminal() {
-    terminal = new Terminal({
-      cursorBlink: true,
-      fontSize: 14,
-      fontFamily: 'Menlo, Monaco, "Courier New", monospace',
-      theme: {
-        background: '#000000',
-        foreground: '#ffffff',
-      },
-    });
-
-    fitAddon = new FitAddon.FitAddon();
-    terminal.loadAddon(fitAddon);
-    terminal.loadAddon(new WebLinksAddon.WebLinksAddon());
-
-    terminal.open(elements.terminalEl);
-    fitAddon.fit();
-
-    terminal.onData((data) => {
-      if (websocket && websocket.readyState === WebSocket.OPEN) {
-        websocket.send(data);
-      }
-    });
-
-    terminal.onResize(({ cols, rows }) => {
-      if (websocket && websocket.readyState === WebSocket.OPEN) {
-        websocket.send(JSON.stringify({ type: 'resize', cols, rows }));
-      }
-    });
-
-    window.addEventListener('resize', () => {
-      if (fitAddon) fitAddon.fit();
-    });
-  }
-
-  function showTerminal() {
-    elements.terminalContainer.classList.remove('hidden');
-    if (terminal) {
-      terminal.clear();
-      fitAddon.fit();
-      terminal.focus();
-    }
-  }
-
-  function hideTerminal() {
-    elements.terminalContainer.classList.add('hidden');
   }
 
   function updateStatus(message) {
@@ -295,8 +240,8 @@
     elements.btnStop.addEventListener('click', stopSession);
     elements.btnDestroy.addEventListener('click', destroySession);
     elements.btnRefresh.addEventListener('click', refreshSessions);
+    elements.btnFullscreen.addEventListener('click', toggleFullscreen);
 
-    initTerminal();
     refreshSessions();
     updateButtons(null);
   }
