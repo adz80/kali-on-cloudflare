@@ -2,22 +2,43 @@
 
 set -e
 
-# Start Xvfb
-echo "Starting Xvfb..."
-Xvfb ${DISPLAY} -screen 0 ${VNC_RESOLUTION}x${VNC_COL_DEPTH} &
-sleep 2
+# Create VNC directory and set password (empty for no auth)
+mkdir -p ~/.vnc
+echo "" | vncpasswd -f > ~/.vnc/passwd
+chmod 600 ~/.vnc/passwd
 
-# Start VNC server
-echo "Starting VNC server..."
-vncserver ${DISPLAY} -geometry ${VNC_RESOLUTION} -depth ${VNC_COL_DEPTH} -SecurityTypes None --I-KNOW-THIS-IS-INSECURE -xstartup /usr/bin/startxfce4 &
-sleep 2
+# Create xstartup script
+cat > ~/.vnc/xstartup << 'EOF'
+#!/bin/bash
+unset SESSION_MANAGER
+unset DBUS_SESSION_BUS_ADDRESS
+exec startxfce4
+EOF
+chmod +x ~/.vnc/xstartup
 
-# Start noVNC
+# Kill any existing VNC sessions
+vncserver -kill ${DISPLAY} 2>/dev/null || true
+
+# Start VNC server (TigerVNC includes its own X server)
+echo "Starting VNC server on display ${DISPLAY}..."
+vncserver ${DISPLAY} \
+    -geometry ${VNC_RESOLUTION} \
+    -depth ${VNC_COL_DEPTH} \
+    -SecurityTypes None \
+    --I-KNOW-THIS-IS-INSECURE \
+    -localhost no
+
+sleep 3
+
+# Start noVNC proxy - bind to 0.0.0.0 so it's accessible from outside container
 echo "Starting noVNC on port ${NO_VNC_PORT}..."
-/opt/noVNC/utils/novnc_proxy --vnc localhost:${VNC_PORT} --listen ${NO_VNC_PORT} &
+/opt/noVNC/utils/novnc_proxy \
+    --vnc localhost:${VNC_PORT} \
+    --listen 0.0.0.0:${NO_VNC_PORT} \
+    --web /opt/noVNC &
 
 echo "Desktop environment ready!"
-echo "noVNC available at http://localhost:${NO_VNC_PORT}"
+echo "noVNC available at http://0.0.0.0:${NO_VNC_PORT}"
 
 # Keep container running
-wait
+tail -f ~/.vnc/*:1.log
