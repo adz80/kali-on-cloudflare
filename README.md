@@ -114,6 +114,17 @@ The container runs:
 
 Container auto-sleeps after 15 minutes of inactivity.
 
+### Customizing Installed Tools
+
+The Dockerfile uses `kali-linux-default` metapackage by default. To customize which tools are installed, edit `container/Dockerfile` and change the metapackage.
+
+See the [Kali Metapackages documentation](https://www.kali.org/docs/general-use/metapackages/) for available options:
+- `kali-linux-default` - Default tools (~5GB)
+- `kali-linux-large` - Extended toolset (~15GB, may timeout during push)
+- `kali-tools-web` - Web application testing
+- `kali-tools-passwords` - Password cracking tools
+- And many more category-specific packages
+
 ## Security
 
 - One container per user (isolation)
