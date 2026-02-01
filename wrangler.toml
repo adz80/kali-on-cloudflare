@@ -24,14 +24,6 @@ class_name = "KaliSession"
 tag = "v1"
 new_sqlite_classes = ["KaliSession"]
 
-[[migrations]]
-tag = "v2"
-renamed_classes = [{ from = "KaliSession", to = "Webtop" }]
-
-[[migrations]]
-tag = "v3"
-renamed_classes = [{ from = "Webtop", to = "KaliSession" }]
-
 [observability]
 enabled = false
 head_sampling_rate = 1
