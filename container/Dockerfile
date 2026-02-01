@@ -35,7 +35,7 @@ ENV QT_X11_NO_MITSHM=1 \
 RUN groupadd -g 61000 kali && \
     useradd -g 61000 -l -m -s /bin/zsh -u 61000 kali && \
     chmod 777 /root && \
-    adduser kali sudo && \
+    usermod -aG sudo kali && \
     echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 # Create config directories
