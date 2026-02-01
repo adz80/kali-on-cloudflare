@@ -8,7 +8,7 @@ routes = [
 
 [[containers]]
 class_name = "KaliSession"
-image = "registry.cloudflare.com/cb3485d35912cf35f42f5f3505062d9b/kali-sessions-kalisession:0b0ac602"
+image = "registry.cloudflare.com/cb3485d35912cf35f42f5f3505062d9b/kali-sessions-kalisession:79187cf4"
 max_instances = 10
 instance_type = "standard-4"
 
