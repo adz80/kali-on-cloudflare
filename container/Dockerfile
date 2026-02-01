@@ -1,61 +1,55 @@
 FROM kalilinux/kali-rolling:latest
 
-ENV DEBIAN_FRONTEND=noninteractive
+ENV DISPLAY=:1 \
+    VNC_PORT=5901 \
+    NO_VNC_PORT=6901 \
+    VNC_COL_DEPTH=24 \
+    VNC_RESOLUTION=1920x1080 \
+    DEBIAN_FRONTEND=noninteractive \
+    TERM=xterm
 
 # Install desktop environment, VNC, and tools
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    xfce4 \
-    xfce4-terminal \
-    dbus-x11 \
-    tigervnc-standalone-server \
-    tigervnc-common \
-    novnc \
-    websockify \
-    supervisor \
-    zsh \
-    curl \
-    wget \
-    net-tools \
-    iputils-ping \
-    dnsutils \
-    nmap \
-    ca-certificates \
-    firefox-esr \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    xvfb xauth dbus-x11 xfce4 xfce4-terminal \
+    wget sudo curl gpg git bzip2 vim procps python3 x11-xserver-utils \
+    libnss3 libnspr4 libasound2 libgbm1 ca-certificates fonts-liberation xdg-utils \
+    tigervnc-standalone-server tigervnc-common \
+    zsh net-tools iputils-ping dnsutils nmap \
+    firefox-esr && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Install noVNC from git
+RUN git clone --branch v1.6.0 --single-branch https://github.com/novnc/noVNC.git /opt/noVNC && \
+    git clone --branch v0.13.0 --single-branch https://github.com/novnc/websockify.git /opt/noVNC/utils/websockify && \
+    ln -s /opt/noVNC/vnc.html /opt/noVNC/index.html && \
+    chmod +x /opt/noVNC/utils/novnc_proxy
+
+# Disable shared memory X11
+ENV QT_X11_NO_MITSHM=1 \
+    _X11_NO_MITSHM=1 \
+    _MITSHM=0
 
 # Create kali user
-RUN useradd -m -s /bin/zsh kali && \
-    echo "kali ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
-    echo "kali:kali" | chpasswd
+RUN groupadd -g 61000 kali && \
+    useradd -g 61000 -l -m -s /bin/zsh -u 61000 kali && \
+    chmod 777 /root && \
+    adduser kali sudo && \
+    echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
-# Set up VNC
-RUN mkdir -p /home/kali/.vnc && \
-    echo "kali" | vncpasswd -f > /home/kali/.vnc/passwd && \
-    chmod 600 /home/kali/.vnc/passwd && \
-    chown -R kali:kali /home/kali/.vnc
+# Create config directories
+RUN mkdir -p /home/kali/.config/xfce4 && \
+    chown -R kali:kali /home/kali && \
+    chmod -R 777 /home/kali
 
-# VNC startup script
-RUN echo '#!/bin/bash\n\
-unset SESSION_MANAGER\n\
-unset DBUS_SESSION_BUS_ADDRESS\n\
-exec startxfce4' > /home/kali/.vnc/xstartup && \
-    chmod +x /home/kali/.vnc/xstartup && \
-    chown kali:kali /home/kali/.vnc/xstartup
-
-# Supervisor config for running VNC and noVNC
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-COPY start.sh /start.sh
-RUN chmod +x /start.sh
+# Copy entrypoint script
+COPY entrypoint.sh /src/entrypoint.sh
+RUN chmod +x /src/entrypoint.sh
 
 USER kali
 WORKDIR /home/kali
 
-ENV TERM=xterm-256color
-ENV DISPLAY=:1
+EXPOSE 6901
 
-# noVNC WebSocket port
-EXPOSE 6080
-
-CMD ["/start.sh"]
+ENTRYPOINT ["/src/entrypoint.sh"]
