@@ -13,6 +13,7 @@ bucket = "./public"
 class_name = "KaliSession"
 image = "./container/Dockerfile"
 max_instances = 10
+instance_type = "standard-2"
 
 [[durable_objects.bindings]]
 name = "KALI_SESSION"
