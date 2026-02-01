@@ -6,9 +6,6 @@ routes = [
   { pattern = "kali.chewbacca.dev", custom_domain = true }
 ]
 
-[site]
-bucket = "./public"
-
 [[containers]]
 class_name = "KaliSession"
 image = "./container/Dockerfile"
@@ -34,16 +31,6 @@ renamed_classes = [{ from = "KaliSession", to = "Webtop" }]
 [[migrations]]
 tag = "v3"
 renamed_classes = [{ from = "Webtop", to = "KaliSession" }]
-
-[[kv_namespaces]]
-binding = "SESSION_INDEX"
-id = "86361887b1004deb92b58981ad0ca78e"
-
-[vars]
-ADMIN_GROUP = "kali-admins"
-IDLE_TIMEOUT_MS = "1800000"
-MAX_SESSIONS_PER_USER = "1"
-NOVNC_PORT = "6901"
 
 [observability]
 enabled = false
