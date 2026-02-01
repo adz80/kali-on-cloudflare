@@ -5,17 +5,21 @@ compatibility_date = "2024-01-29"
 [site]
 bucket = "./public"
 
+[[containers]]
+class_name = "KaliSession"
+image = "./container/Dockerfile"
+max_instances = 10
+
 [[durable_objects.bindings]]
 name = "KALI_SESSION"
 class_name = "KaliSession"
 
 [[migrations]]
-tag = "v1"
-new_classes = ["KaliSession"]
+tag = "v2"
+new_sqlite_classes = ["KaliSession"]
 
 [vars]
 ADMIN_GROUP = "kali-admins"
 IDLE_TIMEOUT_MS = "1800000"
 MAX_SESSIONS_PER_USER = "1"
 TERMINAL_PORT = "7681"
-CONTAINER_IMAGE = "kali-terminal:latest"

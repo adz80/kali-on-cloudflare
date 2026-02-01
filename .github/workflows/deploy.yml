@@ -21,16 +21,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install latest wrangler
-        run: npm install -g wrangler@latest
-
-      - name: Build and push container with wrangler
-        run: wrangler containers build ./container --push --tag kali-terminal:${{ github.sha }}
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
-
-      - name: Deploy Worker
+      - name: Deploy Worker and Container
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
