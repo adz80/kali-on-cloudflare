@@ -1,131 +1,120 @@
 # Kali Sessions
 
-Browser-accessible, ephemeral Kali Linux sessions on Cloudflare.
+Browser-accessible Kali Linux desktop sessions on Cloudflare using Containers.
 
 ## Architecture
 
-- **Worker**: Routes requests, validates Cloudflare Access identity
-- **Durable Object (KaliSession)**: Manages session lifecycle, proxies WebSocket
-- **Container**: Kali Linux with ttyd terminal server
-- **Static Frontend**: xterm.js-based terminal UI
+- **Worker**: Routes requests to per-user containers based on Cloudflare Access identity
+- **Container**: Kali Linux with XFCE desktop, TigerVNC, and noVNC web client
+- **Cloudflare Access**: Handles authentication
+
+Each authenticated user gets their own dedicated container instance.
 
 ## Requirements
 
-- Cloudflare account with Workers, Durable Objects, and Containers enabled
+- Cloudflare account with Workers and Containers enabled (beta)
 - Cloudflare Access configured for authentication
 - Node.js 20+
-- Docker (for container builds)
 
-## Setup
+## Project Structure
 
-### 1. Install Dependencies
+```
+├── src/worker.ts           # Cloudflare Worker entry point
+├── container/
+│   ├── Dockerfile          # Kali Linux container image
+│   └── entrypoint.sh       # VNC and noVNC startup script
+├── wrangler.toml           # Main config (builds container)
+├── wrangler.worker-only.toml # Worker-only deploy config
+└── .github/workflows/deploy.yml
+```
 
+## Deployment
+
+### Option 1: GitHub Actions (Recommended)
+
+The workflow automatically handles deployments:
+
+**Worker-only deploy** (default on push to `main`):
+- Deploys worker code using existing container image
+- Uses `wrangler.worker-only.toml` config
+
+**Container + Worker deploy** (automatic or manual):
+- Triggered automatically when files in `container/` change
+- Or manually via GitHub Actions UI with `build_container: true`
+- Builds new container image and deploys worker
+
+#### Setup GitHub Secrets
+
+Add these secrets to your repository:
+- `CF_API_TOKEN`: Cloudflare API token with Workers and Containers permissions
+- `CF_ACCOUNT_ID`: Your Cloudflare account ID
+
+### Option 2: Local Wrangler Deploy
+
+#### Full deploy (builds container):
 ```bash
 npm install
+npx wrangler deploy
 ```
 
-### 2. Configure Cloudflare Access
+#### Worker-only deploy (uses existing container image):
+```bash
+npx wrangler deploy --config wrangler.worker-only.toml
+```
 
-1. Create an Access Application for your Worker domain
-2. Configure identity providers (Google, GitHub, etc.)
-3. Create an Access Group named `kali-admins` for admin users
+> **Note**: After a container rebuild via GitHub Actions, update the image tag in `wrangler.worker-only.toml` to match the new tag shown in the deploy output.
 
-### 3. Configure Environment
+## Configuration
 
-Update `wrangler.toml` with your settings:
+### wrangler.toml
+
+Main configuration for full deploys:
 
 ```toml
-[vars]
-ADMIN_GROUP = "kali-admins"           # Access group for admins
-IDLE_TIMEOUT_MS = "1800000"           # 30 minutes
-MAX_SESSIONS_PER_USER = "1"           # Max concurrent sessions
-TERMINAL_PORT = "7681"                # ttyd port in container
-CONTAINER_IMAGE = "kali-terminal:latest"
+[[containers]]
+class_name = "KaliSession"
+image = "./container/Dockerfile"    # Builds from Dockerfile
+max_instances = 10
+instance_type = "standard-2"
 ```
 
-### 4. Build Container
+### wrangler.worker-only.toml
 
-```bash
-npm run build:container
+For worker-only deploys (references existing image):
+
+```toml
+[[containers]]
+class_name = "KaliSession"
+image = "registry.cloudflare.com/<account>/kali-sessions-kalisession:<tag>"
+max_instances = 10
 ```
-
-Push to Cloudflare Container Registry:
-
-```bash
-docker tag kali-terminal:latest registry.cloudflare.com/<ACCOUNT_ID>/kali-terminal:latest
-docker push registry.cloudflare.com/<ACCOUNT_ID>/kali-terminal:latest
-```
-
-### 5. Deploy
-
-```bash
-npm run deploy
-```
-
-## API Endpoints
-
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/api/sessions` | Create new session |
-| GET | `/api/sessions` | List sessions |
-| GET | `/api/sessions/:id` | Get session status |
-| POST | `/api/sessions/:id/start` | Start session container |
-| POST | `/api/sessions/:id/stop` | Stop session container |
-| DELETE | `/api/sessions/:id` | Destroy session |
-| GET | `/session/:id/ws` | WebSocket terminal connection |
 
 ## Authentication
 
-All authentication is handled by Cloudflare Access. The application:
+All authentication is handled by Cloudflare Access:
 
-- Reads identity from `Cf-Access-Authenticated-User-Email` header
-- Parses JWT from `Cf-Access-Jwt-Assertion` for groups
-- Returns 403 for requests without valid Access identity
+- Worker reads `CF-Access-Authenticated-User-Email` header
+- Each user is routed to their own container by email
+- Unauthenticated requests return 401
 
-**No application-level authentication is implemented.**
+**Setup Cloudflare Access:**
+1. Create an Access Application for your Worker domain
+2. Configure identity providers (Google, GitHub, etc.)
+3. Set access policies as needed
 
-## Session Lifecycle
+## Container Details
 
-1. **Create**: Allocates Durable Object, stores owner
-2. **Start**: Launches container with internet enabled
-3. **Connect**: WebSocket proxied through DO to container
-4. **Stop**: Gracefully stops container, closes WebSockets
-5. **Destroy**: Deletes container and DO state
+The container runs:
+- **Kali Linux** base image
+- **XFCE4** desktop environment
+- **TigerVNC** server (no authentication, secured by Access)
+- **noVNC** web client on port 6901
+
+Container auto-sleeps after 15 minutes of inactivity.
 
 ## Security
 
-- One container per session (isolation)
-- Containers have outbound internet only (no inbound)
-- All ingress via Worker → Durable Object → Container
-- Session owner or admin required for access
-- Idle timeout auto-stops sessions
-
-## Development
-
-```bash
-npm run dev
-```
-
-## CI/CD
-
-GitHub Actions workflow:
-
-1. Builds and pushes container to Cloudflare registry
-2. Deploys Worker with pinned container image tag
-
-Required secrets:
-- `CF_API_TOKEN`: Cloudflare API token
-- `CF_ACCOUNT_ID`: Cloudflare account ID
-
-## Logs
-
-Events logged (JSON format):
-- `session_created`
-- `session_started`
-- `session_stopped`
-- `session_destroyed`
-- `websocket_connected`
-- `websocket_disconnected`
-- `error`
-
-Each entry includes: `sessionId`, `owner`, `timestamp`, `message` (optional)
+- One container per user (isolation)
+- All access gated by Cloudflare Access
+- VNC has no password (security handled at Access layer)
+- Containers have outbound internet access
