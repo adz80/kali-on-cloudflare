@@ -59,6 +59,8 @@ npm install
 npx wrangler deploy
 ```
 
+> **Note**: EDR (Endpoint Detection and Response) systems may block Docker builds locally. If you encounter issues, use GitHub Actions for container builds instead.
+
 #### Worker-only deploy (uses existing container image):
 ```bash
 npx wrangler deploy --config wrangler.worker-only.toml
