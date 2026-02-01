@@ -22,6 +22,10 @@ class_name = "KaliSession"
 tag = "v1"
 new_sqlite_classes = ["KaliSession"]
 
+[[kv_namespaces]]
+binding = "SESSION_INDEX"
+id = "86361887b1004deb92b58981ad0ca78e"
+
 [vars]
 ADMIN_GROUP = "kali-admins"
 IDLE_TIMEOUT_MS = "1800000"

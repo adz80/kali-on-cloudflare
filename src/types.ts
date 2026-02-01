@@ -1,10 +1,10 @@
 export interface Env {
   KALI_SESSION: DurableObjectNamespace;
+  SESSION_INDEX: KVNamespace;
   ADMIN_GROUP: string;
   IDLE_TIMEOUT_MS: string;
   MAX_SESSIONS_PER_USER: string;
   TERMINAL_PORT: string;
-  CONTAINER_IMAGE: string;
   __STATIC_CONTENT?: KVNamespace;
   __STATIC_CONTENT_MANIFEST?: string;
 }

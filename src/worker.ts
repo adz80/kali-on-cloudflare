@@ -109,6 +109,10 @@ async function handleCreateSession(
     })
   );
 
+  if (response.ok) {
+    await indexSession(env, sessionId, owner, "created");
+  }
+
   return response;
 }
 
@@ -177,15 +181,58 @@ async function routeToDurableObject(
   );
 }
 
-// Placeholder implementations - in production, use D1 or KV for session indexing
 async function getSessionsForOwner(env: Env, owner: string): Promise<SessionListItem[]> {
-  // This would query a D1 database or KV store that indexes sessions by owner
-  // For now, return empty - the DO itself is the source of truth
-  return [];
+  const ownerKey = `owner:${owner}`;
+  const sessionIds = await env.SESSION_INDEX.get<string[]>(ownerKey, "json") || [];
+  
+  const sessions: SessionListItem[] = [];
+  for (const sessionId of sessionIds) {
+    const session = await env.SESSION_INDEX.get<SessionListItem>(`session:${sessionId}`, "json");
+    if (session) {
+      sessions.push(session);
+    }
+  }
+  return sessions;
 }
 
 async function getAllSessions(env: Env): Promise<SessionListItem[]> {
-  // This would query a D1 database or KV store for all sessions
-  // For now, return empty - requires external indexing
-  return [];
+  const list = await env.SESSION_INDEX.list({ prefix: "session:" });
+  const sessions: SessionListItem[] = [];
+  
+  for (const key of list.keys) {
+    const session = await env.SESSION_INDEX.get<SessionListItem>(key.name, "json");
+    if (session) {
+      sessions.push(session);
+    }
+  }
+  return sessions;
+}
+
+async function indexSession(env: Env, sessionId: string, owner: string, status: string): Promise<void> {
+  const now = Date.now();
+  const sessionData: SessionListItem = {
+    sessionId,
+    owner,
+    status: status as SessionListItem["status"],
+    createdAt: now,
+    lastSeen: now,
+  };
+  
+  await env.SESSION_INDEX.put(`session:${sessionId}`, JSON.stringify(sessionData));
+  
+  const ownerKey = `owner:${owner}`;
+  const sessionIds = await env.SESSION_INDEX.get<string[]>(ownerKey, "json") || [];
+  if (!sessionIds.includes(sessionId)) {
+    sessionIds.push(sessionId);
+    await env.SESSION_INDEX.put(ownerKey, JSON.stringify(sessionIds));
+  }
+}
+
+async function removeSessionIndex(env: Env, sessionId: string, owner: string): Promise<void> {
+  await env.SESSION_INDEX.delete(`session:${sessionId}`);
+  
+  const ownerKey = `owner:${owner}`;
+  const sessionIds = await env.SESSION_INDEX.get<string[]>(ownerKey, "json") || [];
+  const filtered = sessionIds.filter(id => id !== sessionId);
+  await env.SESSION_INDEX.put(ownerKey, JSON.stringify(filtered));
 }
