@@ -1,4 +1,4 @@
-import { Container, getContainer, loadBalance } from '@cloudflare/containers';
+import { Container, getRandom } from '@cloudflare/containers';
 
 interface Env {
 	KALI_SESSION: DurableObjectNamespace<KaliSession>;
@@ -22,8 +22,7 @@ export class KaliSession extends Container<Env> {
 
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
-		let container = await loadBalance(env.KALI_SESSION, 10);
-		await container.start();
+		const container = await getRandom(env.KALI_SESSION, 10);
 		return await container.fetch(request);
 	},
 };
