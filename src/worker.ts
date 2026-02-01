@@ -1,14 +1,13 @@
 import { Env, Identity, SessionListItem } from "./types";
 import { extractIdentity, isAdmin, getOwnerIdentifier } from "./identity";
 import { KaliSession } from "./durable-object";
-import { KaliContainer } from "./container";
 import { getAssetFromKV, NotFoundError } from "@cloudflare/kv-asset-handler";
 // @ts-ignore - This is injected by wrangler at build time
 import manifestJSON from "__STATIC_CONTENT_MANIFEST";
 
 const assetManifest = JSON.parse(manifestJSON);
 
-export { KaliSession, KaliContainer };
+export { KaliSession };
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
