@@ -10,7 +10,7 @@ routes = [
 class_name = "KaliSession"
 image = "./container/Dockerfile"
 max_instances = 1
-instance_type = "standard-2"
+instance_type = "standard-4"
 
 [containers.constraints]
 regions = ["oc"]
