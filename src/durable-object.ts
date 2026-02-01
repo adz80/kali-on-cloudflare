@@ -1,4 +1,4 @@
-import { Env, SessionState, SessionStatus, Identity } from "./types";
+import { Env, SessionState, SessionStatus, Identity, ContainerInstance } from "./types";
 import { log } from "./logger";
 import { getOwnerIdentifier, isAdmin } from "./identity";
 
@@ -8,6 +8,7 @@ export class KaliSession implements DurableObject {
   private sessionData: SessionState | null = null;
   private activeWebSockets: Set<WebSocket> = new Set();
   private idleCheckInterval: number | null = null;
+  private containerInstance: ContainerInstance | null = null;
 
   constructor(ctx: DurableObjectState, env: Env) {
     this.ctx = ctx;
@@ -114,15 +115,9 @@ export class KaliSession implements DurableObject {
       this.sessionData.status = "starting";
       await this.saveSession();
 
-      // Start container with internet enabled
+      // Get container instance using the new Container API
       // The container binding is configured in wrangler.toml
-      if (!this.ctx.container) {
-        throw new Error("Container binding not available");
-      }
-
-      await this.ctx.container.start({
-        enableInternet: true,
-      });
+      this.containerInstance = this.env.KALI_CONTAINER.get(this.sessionData.sessionId);
 
       this.sessionData.status = "running";
       this.sessionData.lastSeen = Date.now();
@@ -195,21 +190,23 @@ export class KaliSession implements DurableObject {
       return new Response("Session not found", { status: 404 });
     }
 
-    if (this.sessionData.status !== "running" || !this.ctx.container) {
+    if (this.sessionData.status !== "running") {
       return new Response("Session not running", { status: 400 });
     }
 
-    const novncPort = parseInt(this.env.NOVNC_PORT, 10);
+    // Get or create container instance
+    if (!this.containerInstance) {
+      this.containerInstance = this.env.KALI_CONTAINER.get(this.sessionData.sessionId);
+    }
 
     try {
-      const containerFetcher = this.ctx.container.getTcpPort(novncPort);
-      
-      // Strip /vnc prefix and forward to noVNC server
+      // Strip /vnc prefix and forward to container (uses defaultPort from KaliContainer)
       const containerPath = path.replace(/^\/vnc/, "") || "/";
-      const containerUrl = `http://container${containerPath}`;
+      const url = new URL(request.url);
+      url.pathname = containerPath;
 
-      const containerResponse = await containerFetcher.fetch(
-        new Request(containerUrl, {
+      const containerResponse = await this.containerInstance.fetch(
+        new Request(url.toString(), {
           method: request.method,
           headers: request.headers,
           body: request.body,
@@ -217,14 +214,6 @@ export class KaliSession implements DurableObject {
       );
 
       this.updateLastSeen();
-
-      // Handle WebSocket upgrade for VNC
-      if (containerResponse.webSocket) {
-        log("websocket_connected", this.sessionData.sessionId, this.sessionData.owner);
-        containerResponse.webSocket.addEventListener("close", () => {
-          log("websocket_disconnected", this.sessionData!.sessionId, this.sessionData!.owner);
-        });
-      }
 
       return containerResponse;
     } catch (err) {
@@ -249,13 +238,8 @@ export class KaliSession implements DurableObject {
     }
     this.activeWebSockets.clear();
 
-    if (this.ctx.container) {
-      try {
-        await this.ctx.container.destroy();
-      } catch {
-        // Container may already be destroyed
-      }
-    }
+    // Container will auto-sleep based on sleepAfter setting in KaliContainer
+    this.containerInstance = null;
 
     if (this.sessionData) {
       this.sessionData.status = "stopped";

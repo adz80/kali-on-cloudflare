@@ -10,9 +10,12 @@ routes = [
 bucket = "./public"
 
 [[containers]]
-class_name = "KaliSession"
+class_name = "KaliContainer"
 image = "./container/Dockerfile"
 max_instances = 10
+
+[[containers.bindings]]
+name = "KALI_CONTAINER"
 
 [[durable_objects.bindings]]
 name = "KALI_SESSION"

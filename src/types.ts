@@ -1,5 +1,15 @@
+// Container binding type
+export interface ContainerBinding {
+  get(id: string): ContainerInstance;
+}
+
+export interface ContainerInstance {
+  fetch(request: Request): Promise<Response>;
+}
+
 export interface Env {
   KALI_SESSION: DurableObjectNamespace;
+  KALI_CONTAINER: ContainerBinding;
   SESSION_INDEX: KVNamespace;
   ADMIN_GROUP: string;
   IDLE_TIMEOUT_MS: string;
