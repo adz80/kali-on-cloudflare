@@ -2,7 +2,7 @@
 
 set -e
 
-# Create VNC directory
+# Create VNC directory (no password needed with SecurityTypes None)
 mkdir -p ~/.vnc
 
 # Create xstartup script
