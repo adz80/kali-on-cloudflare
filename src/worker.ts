@@ -22,8 +22,8 @@ export class KaliSession extends Container<Env> {
 
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
-		// return await getContainer(env.WEBTOP).fetch(request);
 		let container = await loadBalance(env.KALI_SESSION, 10);
+		await container.start();
 		return await container.fetch(request);
 	},
 };
