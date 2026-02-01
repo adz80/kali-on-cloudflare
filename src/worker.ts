@@ -1,4 +1,4 @@
-import { Container, getRandom } from '@cloudflare/containers';
+import { Container, getContainer } from '@cloudflare/containers';
 
 interface Env {
 	KALI_SESSION: DurableObjectNamespace<KaliSession>;
@@ -22,7 +22,9 @@ export class KaliSession extends Container<Env> {
 
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
-		const container = await getRandom(env.KALI_SESSION, 10);
+		// Use a fixed container ID for session stickiness
+		// This ensures WebSocket connections go to the same container as the HTML page
+		const container = getContainer(env.KALI_SESSION, 'default-session');
 		return await container.fetch(request);
 	},
 };
